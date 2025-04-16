@@ -21,9 +21,6 @@ dependencies = [
     "matplotlib (>=3.10.1,<4.0.0)"
 ]
 
-[tool.poetry]
-
-
 [[tool.poetry.source]]
 name = "tuna"
 url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
