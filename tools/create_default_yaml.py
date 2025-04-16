@@ -17,7 +17,7 @@ config = {
         "log_every_n_steps": 100,
         "val_check_interval": 0.25,
         "final_model_path": "./weight/final_model.ckpt",
-        "precision": "fp16",
+        "precision": "fp16-mixed",
         "strategy": "ddp",
     },
 }
