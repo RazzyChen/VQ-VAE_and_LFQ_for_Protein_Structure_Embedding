@@ -1,6 +1,9 @@
-name: Python Package using Poetry
+name: Build all in Linux
 
-on: [push]
+on:
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build-linux:
@@ -24,7 +27,9 @@ jobs:
     - name: Cache Poetry dependencies
       uses: actions/cache@v3
       with:
-        path: ~/.cache/pypoetry
+        path: |
+          ~/.cache/pypoetry
+          ~/.cache/pip
         key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
         restore-keys: |
           ${{ runner.os }}-poetry-
