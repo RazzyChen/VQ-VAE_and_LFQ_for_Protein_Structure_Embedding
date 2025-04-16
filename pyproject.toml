@@ -1,0 +1,47 @@
+[project]
+name = "vqtokenizer"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "ZiChenYang"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = "~=3.11"
+dependencies = [
+    "torch (>=2.6.0,<3.0.0)",
+    "lightning (>=2.5.1,<3.0.0)",
+    "biopython (>=1.85,<2.0)",
+    "wandb (>=0.19.9,<0.20.0)",
+    "numpy (>=2.2.4,<3.0.0)",
+    "pathlib (>=1.0.1,<2.0.0)",
+    "hydra-core (>=1.3.2,<2.0.0)",
+    "lmdb (>=1.6.2,<2.0.0)",
+    "nvitop (>=1.4.2,<2.0.0)",
+    "matplotlib (>=3.10.1,<4.0.0)"
+]
+
+[tool.poetry]
+
+
+[[tool.poetry.source]]
+name = "tuna"
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
+priority = "primary"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+select = [
+    "F",
+    "E",
+    "W",
+    "UP",
+    "M",
+    "N",
+    "I",
+]
+ignore = ["F401"]
