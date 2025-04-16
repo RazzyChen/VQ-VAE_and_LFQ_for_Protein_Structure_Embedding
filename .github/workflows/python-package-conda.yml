@@ -32,7 +32,7 @@ jobs:
     - name: Install dependencies with Poetry
       run: |
         poetry lock
-        poetry install
+        poetry install --no-interaction
 
     - name: Lint with ruff
       run: |
