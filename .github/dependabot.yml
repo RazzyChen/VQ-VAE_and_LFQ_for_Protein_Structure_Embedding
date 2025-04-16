@@ -1,0 +1,8 @@
+# .github/dependency-update.yml
+updates:
+  - package-ecosystem: "poetry"  # 使用 poetry 作为依赖管理工具
+    directory: "/"                # 依赖文件的位置，通常是根目录
+    schedule:
+      interval: "weekly"          # 每周检查一次依赖更新
+    commit-message:
+      prefix: "fix"               # PR 提交信息的前缀
