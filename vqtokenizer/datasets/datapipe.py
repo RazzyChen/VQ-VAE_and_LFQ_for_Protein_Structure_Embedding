@@ -51,7 +51,6 @@ def calc_phi_psi(residues: list[Residue]) -> torch.Tensor:
 
 
 # Convert angles to vector representation
-@torch.compile
 def angle_to_vector(angles: torch.Tensor) -> torch.Tensor:
     """
     Convert angles to vector representation (cos, sin for each angle).
@@ -64,7 +63,6 @@ def angle_to_vector(angles: torch.Tensor) -> torch.Tensor:
 
 
 # Create patches from vectors
-@torch.compile
 def make_patches(vecs: torch.Tensor, patch_size: int = 3) -> torch.Tensor:
     """
     Create sliding window patches from input vectors.
