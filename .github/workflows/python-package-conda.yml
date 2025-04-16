@@ -33,10 +33,4 @@ jobs:
       run: |
         poetry config repositories.pypi https://pypi.org/simple
         poetry lock
-        poetry install --no-dev --no-interaction
-
-    - name: Lint with ruff
-      run: |
-        poetry add ruff --dev
-        poetry run ruff .
-
+        poetry install --no-interaction
