@@ -31,8 +31,9 @@ jobs:
 
     - name: Install dependencies with Poetry
       run: |
+        poetry config repositories.pypi https://pypi.org/simple
         poetry lock
-        poetry install --no-interaction
+        poetry install --no-dev --no-interaction
 
     - name: Lint with ruff
       run: |
