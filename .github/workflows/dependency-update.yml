@@ -1,7 +1,0 @@
-updates:
-  - package-ecosystem: "poetry"
-    directory: "/"    
-    schedule:
-      interval: "weekly"
-    commit-message:
-      prefix: "fix"
