@@ -6,18 +6,22 @@ This module implements loading of protein structure datasets, angle calculation,
 
 import os
 import warnings
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Optional
 
+import hydra
 import numpy as np
 import pytorch_lightning as pl
 import torch
+import yaml
 from Bio.PDB import PDBParser
 from Bio.PDB.Chain import Chain
 from Bio.PDB.Model import Model
 from Bio.PDB.Residue import Residue
 from Bio.PDB.Structure import Structure
 from Bio.PDB.vectors import Vector, calc_dihedral
+from omegaconf import DictConfig
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -59,7 +63,9 @@ def angle_to_vector(angles: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: [N, 4] tensor, each row is [cos(phi), sin(phi), cos(psi), sin(psi)].
     """
-    return torch.stack([torch.cos(angles), torch.sin(angles)], axis=-1).reshape(len(angles), -1)  # (N, 4)
+    return torch.stack(
+        [torch.cos(angles[:, 0]), torch.sin(angles[:, 0]), torch.cos(angles[:, 1]), torch.sin(angles[:, 1])], axis=-1
+    )  # (N, 4)
 
 
 # Create patches from vectors
@@ -83,39 +89,57 @@ def make_patches(vecs: torch.Tensor, patch_size: int = 3) -> torch.Tensor:
     return patches.float()
 
 
+def _check_pdb_file(pdb_file, patch_size):
+    try:
+        parser = PDBParser(QUIET=True)
+        structure = parser.get_structure("check", pdb_file)
+        model = structure[0]
+        residues = [res for res in model.get_residues() if res.has_id("N") and res.has_id("CA") and res.has_id("C")]
+        if len(residues) >= patch_size + 2:
+            return str(pdb_file)
+    except Exception:
+        return None
+
+
 class ProteinStructureDataset(Dataset):
     """
     Dataset for protein structures, extracts patches of angle vectors from PDB files.
     Args:
         pdb_dir (str or Path): Directory containing PDB files.
         patch_size (int): Number of residues per patch.
+        num_workers (int): Number of worker processes for parallel processing.
     Returns:
         Each item is a tensor of shape (num_patches, patch_size * 4).
     """
 
-    def __init__(self, pdb_dir: str, patch_size: int = 3) -> None:
+    def __init__(self, pdb_dir: str, patch_size: int = 3, num_workers: int = 4) -> None:
         self.pdb_files: list[Path] = list(Path(pdb_dir).glob("*.pdb"))
         self.patch_size: int = patch_size
         self.parser: PDBParser = PDBParser(QUIET=True)
+        self.num_workers = num_workers
 
-        # Preprocess and validate files
+        cache_file = Path(pdb_dir) / "valid_pdb_files.txt"
+        if cache_file.exists():
+            with open(cache_file) as f:
+                self.pdb_files = [Path(line.strip()) for line in f if line.strip()]
+            print(f"Loaded {len(self.pdb_files)} valid PDB files from cache")
+            return
+
+        # 并行检查
         valid_files: list[Path] = []
-        for pdb_file in self.pdb_files:
-            try:
-                # Quick check if the file can be processed and produces enough patches
-                structure: Structure = self.parser.get_structure("check", pdb_file)
-                model: Model = structure[0]
-                residues: list[Residue] = [
-                    res for res in model.get_residues() if res.has_id("N") and res.has_id("CA") and res.has_id("C")
-                ]
-
-                if len(residues) >= patch_size + 2:  # Need enough residues to calculate dihedrals and create patches
-                    valid_files.append(pdb_file)
-            except Exception as e:
-                print(f"Skipping {pdb_file}: {e}")
+        with ProcessPoolExecutor(max_workers=self.num_workers) as executor:
+            futures = [executor.submit(_check_pdb_file, pdb_file, patch_size) for pdb_file in self.pdb_files]
+            for fut in as_completed(futures):
+                result = fut.result()
+                if result:
+                    valid_files.append(Path(result))
 
         self.pdb_files = valid_files
         print(f"Loaded {len(self.pdb_files)} valid PDB files")
+        # 缓存结果
+        with open(cache_file, "w") as f:
+            for pdb_file in self.pdb_files:
+                f.write(str(pdb_file) + "\n")
 
     def __len__(self) -> int:
         """
@@ -188,7 +212,7 @@ class ProteinDataModule(pl.LightningDataModule):
         Setup the dataset and split into train/validation sets.
         """
         # Create dataset
-        self.dataset = ProteinStructureDataset(self.pdb_dir, self.patch_size)
+        self.dataset = ProteinStructureDataset(self.pdb_dir, self.patch_size, self.num_workers)
 
         # Split dataset into training and validation sets
         dataset_size = len(self.dataset)
