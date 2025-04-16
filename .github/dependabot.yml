@@ -1,8 +1,8 @@
-# .github/dependency-update.yml
+version: 2
 updates:
-  - package-ecosystem: "pip"  
-    directory: "/"                # 依赖文件的位置，通常是根目录
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
-      interval: "weekly"          # 每周检查一次依赖更新
-    commit-message:
-      prefix: "fix"               # PR 提交信息的前缀
+      interval: "weekly"
+    allow:
+      - dependency-type: "all"
