@@ -23,7 +23,7 @@ trainer:
   monitor: val_total_loss
   monitor_mode: min
   log_every_n_steps: 100
-  val_check_interval: 0.25
+  val_check_interval: 1
   final_model_path: ./weight/final_model.ckpt
   precision: fp16-mixed
   strategy: ddp
