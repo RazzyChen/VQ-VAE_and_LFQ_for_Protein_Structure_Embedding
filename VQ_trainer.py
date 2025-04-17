@@ -12,7 +12,7 @@ import hydra
 import pytorch_lightning as pl
 import wandb
 from omegaconf import DictConfig, OmegaConf
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 from vqtokenizer.datasets.datapipe import ProteinDataModule
@@ -60,13 +60,16 @@ def main(cfg: DictConfig) -> None:
         mode=cfg.trainer.monitor_mode,
     )
 
+    # Add learning rate monitor
+    lr_monitor = LearningRateMonitor(logging_interval="step")
+
     # Create trainer
     trainer = pl.Trainer(
         max_epochs=cfg.trainer.max_epochs,
         accelerator=cfg.trainer.accelerator,
         strategy=cfg.trainer.strategy,
         logger=wandb_logger,
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback, lr_monitor],
         log_every_n_steps=cfg.trainer.log_every_n_steps,
         val_check_interval=cfg.trainer.val_check_interval,
         precision=cfg.trainer.precision,
