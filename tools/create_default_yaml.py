@@ -31,9 +31,8 @@ def get_config(cfg_type):
             "wandb": {"project": "LFQTokenizer"},
             "data": {"pdb_dir": "./data", "patch_size": 8, "batch_size": 64, "num_workers": 12},
             "model": {
-                "hidden_dim": 768,
-                "latent_dim": 512,
-                "num_embeddings": 768,
+                "hidden_dim": 1024,
+                "latent_dim": 2,
                 "nhead": 16,
                 "learning_rate": 1e-3,
                 "temperature": 1.0,

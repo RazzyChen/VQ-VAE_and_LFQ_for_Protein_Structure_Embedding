@@ -23,7 +23,6 @@ class LFQTokenizer(pl.LightningModule):
         input_dim: int,
         hidden_dim: int,
         latent_dim: int,
-        num_embeddings: int,
         nhead: int = 4,
         learning_rate: float = 1e-3,
         temperature: float = 1.0,
@@ -35,7 +34,7 @@ class LFQTokenizer(pl.LightningModule):
             input_dim=input_dim, d_model=hidden_dim, nhead=nhead, dim_feedforward=hidden_dim * 2, num_layers=3
         )
         self.projection = nn.Linear(hidden_dim, latent_dim)
-        self.lfq_layer = LFQLayer(num_embeddings, latent_dim, temperature=temperature, commitment_cost=commitment_cost)
+        self.lfq_layer = LFQLayer(embedding_dim=latent_dim, temperature=temperature, commitment_cost=commitment_cost)
         self.decoder = MLPDecoder(latent_dim, hidden_dim, input_dim)
         self.learning_rate = learning_rate
 

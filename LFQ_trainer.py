@@ -43,7 +43,6 @@ def main(cfg: DictConfig) -> None:
         input_dim=input_dim,
         hidden_dim=cfg.model.hidden_dim,
         latent_dim=cfg.model.latent_dim,
-        num_embeddings=cfg.model.num_embeddings,
         nhead=cfg.model.nhead,
         learning_rate=cfg.model.learning_rate,
         temperature=getattr(cfg.model, "temperature", 1.0),
