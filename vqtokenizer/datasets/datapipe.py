@@ -22,35 +22,31 @@ class ProteinStructureDataset(Dataset):
         self.pdb_files = []
         lmdb_folder = Path(lmdb_folder)
         if lmdb_folder.exists():
-            lmdb_files = list(lmdb_folder.glob("*.lmdb"))
-            if lmdb_files:
-                lmdb_path = lmdb_files[0]
-                md5_path = lmdb_path.with_suffix(".lmdb.md5")
-                if md5_path.exists():
+            data_mdb = lmdb_folder / "data.mdb"
+            md5_path = lmdb_folder / "data.md5"
+            if data_mdb.exists() and md5_path.exists():
 
-                    def compute_md5(file_path):
-                        hash_md5 = hashlib.md5()
-                        with open(file_path, "rb") as f:
-                            for chunk in iter(lambda: f.read(4096), b""):
-                                hash_md5.update(chunk)
-                        return hash_md5.hexdigest()
+                def compute_md5(file_path):
+                    hash_md5 = hashlib.md5()
+                    with open(file_path, "rb") as f:
+                        for chunk in iter(lambda: f.read(4096), b""):
+                            hash_md5.update(chunk)
+                    return hash_md5.hexdigest()
 
-                    with open(md5_path) as f:
-                        saved_md5 = f.read().strip()
-                    real_md5 = compute_md5(lmdb_path)
-                    if saved_md5 == real_md5:
-                        self.use_lmdb = True
-                        self.lmdb_env = lmdb.open(str(lmdb_path), readonly=True, lock=False)
-                        with self.lmdb_env.begin() as txn:
-                            self.pdb_files = [Path(key.decode()) for key, _ in txn.cursor()]
-                        print(f"[LMDB] Loaded LMDB: {lmdb_path} (MD5 check passed, {len(self.pdb_files)} PDBs found)")
-                        return
-                    else:
-                        print("[LMDB] MD5 check failed, ignoring LMDB.")
+                with open(md5_path) as f:
+                    saved_md5 = f.read().strip()
+                real_md5 = compute_md5(data_mdb)
+                if saved_md5 == real_md5:
+                    self.use_lmdb = True
+                    self.lmdb_env = lmdb.open(str(lmdb_folder), readonly=True, lock=False)
+                    with self.lmdb_env.begin() as txn:
+                        self.pdb_files = [Path(key.decode()) for key, _ in txn.cursor()]
+                    print(f"[LMDB] Loaded LMDB: {data_mdb} (MD5 check passed, {len(self.pdb_files)} PDBs found)")
+                    return
                 else:
-                    print(f"[LMDB] MD5 file not found: {md5_path}")
+                    print("[LMDB] MD5 check failed, ignoring LMDB.")
             else:
-                print(f"[LMDB] No .lmdb file found in folder {lmdb_folder}")
+                print(f"[LMDB] data.mdb or data.md5 not found in folder {lmdb_folder}")
         else:
             print(f"[LMDB] Folder {lmdb_folder} does not exist")
 
@@ -83,6 +79,16 @@ class ProteinDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         # Use lmdb_dir if provided, else fallback to pdb_dir
         data_dir = self.lmdb_dir if self.lmdb_dir is not None else self.pdb_dir
+        md5_path = Path(data_dir) / "data.md5"
+        if not md5_path.exists():
+            print(f"[ERROR] data.md5 not found at: {md5_path}")
+            print(
+                "Generally, the md5 and mdb files are located together, which means the data was not correctly recognized."
+            )
+            print("Abort training.")
+            import sys
+
+            sys.exit(1)
         self.dataset = ProteinStructureDataset(data_dir)
 
     def train_dataloader(self):

@@ -104,7 +104,7 @@ def main():
 
     lmdb_folder = Path(args.lmdb_folder)
     lmdb_folder.mkdir(parents=True, exist_ok=True)
-    lmdb_path = lmdb_folder / "train.lmdb"
+    lmdb_path = lmdb_folder / "train"
 
     num_workers = data_cfg.get("num_workers", 1)
     pdb_files = list(Path(pdb_dir).glob("*.pdb"))
