@@ -30,6 +30,7 @@ def main(cfg: DictConfig) -> None:
     # Create data module
     data_module = ProteinDataModule(
         pdb_dir=cfg.data.pdb_dir,
+        lmdb_dir=getattr(cfg.data, "lmdb_dir", None),
         patch_size=cfg.data.patch_size,
         batch_size=cfg.data.batch_size,
         num_workers=cfg.data.num_workers,

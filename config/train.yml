@@ -2,8 +2,9 @@ wandb:
   project: VQTokenizer
 
 data:
-  pdb_dir: ./data
-  patch_size: 3
+  pdb_dir: ./dataset         # 用于构建LMDB的数据源
+  lmdb_dir: ./LMDB           # 训练时LMDB文件夹路径
+  patch_size: 8
   batch_size: 64
   num_workers: 12
 
