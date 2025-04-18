@@ -7,14 +7,14 @@ import argparse
 import hashlib
 from pathlib import Path
 
-import hydra
-import lmdb
 import torch
 from Bio.PDB import PDBParser
 from Bio.PDB.Residue import Residue
 from Bio.PDB.vectors import calc_dihedral
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 from tqdm import tqdm
+
+import lmdb
 
 
 # --- Functions related to patch computation ---
@@ -69,12 +69,13 @@ def valid_pdb_residues(pdb_file, patch_size):
     return residues if len(residues) >= patch_size + 2 else None
 
 
-@hydra.main(version_base=None, config_path=None, config_name=None)
-def main(cfg: DictConfig) -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="config/train.yml", help="Path to config file")
+def main():
+    parser = argparse.ArgumentParser(
+        description="Precompute patches for all PDB files and save them to LMDB, and save the MD5 of the LMDB."
+    )
+    parser.add_argument("--config", type=str, default="../config/train.yml", help="Path to config file")
     parser.add_argument("--lmdb_folder", type=str, required=True, help="Output LMDB folder path")
-    args, unknown = parser.parse_known_args()
+    args = parser.parse_args()
     # Read config
     config = OmegaConf.load(args.config)
     data_cfg = config["data"]
@@ -83,7 +84,7 @@ def main(cfg: DictConfig) -> None:
 
     lmdb_folder = Path(args.lmdb_folder)
     lmdb_folder.mkdir(parents=True, exist_ok=True)
-    lmdb_path = lmdb_folder / "patches.lmdb"
+    lmdb_path = lmdb_folder / "train.lmdb"
 
     pdb_files = list(Path(pdb_dir).glob("*.pdb"))
     env = lmdb.open(str(lmdb_path), map_size=1024**4)
@@ -99,8 +100,10 @@ def main(cfg: DictConfig) -> None:
             txn.put(str(pdb_file).encode(), tensor_bytes)
     env.close()
 
-    md5 = compute_md5(lmdb_path)
-    md5_path = lmdb_path.with_suffix(".lmdb.md5")
+    # Compute MD5 for the actual LMDB data file (data.mdb)
+    data_mdb_path = lmdb_path / "data.mdb"
+    md5 = compute_md5(data_mdb_path)
+    md5_path = data_mdb_path.with_suffix(".md5")
     with open(md5_path, "w") as f:
         f.write(md5)
     print(f"LMDB saved: {lmdb_path}\nMD5: {md5}\nMD5 file: {md5_path}")
