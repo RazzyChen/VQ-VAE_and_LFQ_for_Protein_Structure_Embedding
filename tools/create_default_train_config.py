@@ -9,8 +9,19 @@ def get_config(cfg_type):
     if cfg_type == "vq":
         return {
             "wandb": {"project": "VQTokenizer"},
-            "data": {"pdb_dir": "./data", "patch_size": 8, "batch_size": 64, "num_workers": 12},
-            "model": {"hidden_dim": 768, "latent_dim": 512, "num_embeddings": 768, "nhead": 16, "learning_rate": 1e-3},
+            "data": {
+                "pdb_dir": "./data",
+                "patch_size": 8,
+                "batch_size": 64,
+                "num_workers": 12,
+            },
+            "model": {
+                "hidden_dim": 768,
+                "latent_dim": 512,
+                "num_embeddings": 768,
+                "nhead": 16,
+                "learning_rate": 1e-3,
+            },
             "trainer": {
                 "max_epochs": 50,
                 "accelerator": "auto",
@@ -22,14 +33,20 @@ def get_config(cfg_type):
                 "log_every_n_steps": 100,
                 "val_check_interval": 0.25,
                 "final_model_path": "./weight/final_model.ckpt",
-                "precision": "fp16-mixed",
+                "precision": "BF16-mixed",
                 "strategy": "ddp",
             },
         }
     elif cfg_type == "lfq":
         return {
             "wandb": {"project": "VQTokenizer"},
-            "data": {"pdb_dir": "../data", "patch_size": 8, "lmdb_dir": "./LMDB", "batch_size": 64, "num_workers": 12},
+            "data": {
+                "pdb_dir": "../data",
+                "patch_size": 8,
+                "lmdb_dir": "./LMDB",
+                "batch_size": 64,
+                "num_workers": 12,
+            },
             "model": {
                 "hidden_dim": 1024,
                 "latent_dim": 8,
@@ -49,7 +66,7 @@ def get_config(cfg_type):
                 "log_every_n_steps": 100,
                 "val_check_interval": 0.25,
                 "final_model_path": "./weight/final_model.ckpt",
-                "precision": "fp16-mixed",
+                "precision": "BF16-mixed",
                 "strategy": "ddp",
             },
         }
@@ -58,8 +75,12 @@ def get_config(cfg_type):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate default training config file.")
-    parser.add_argument("--type", required=True, choices=["lfq", "vq"], help="Config type: lfq or vq")
+    parser = argparse.ArgumentParser(
+        description="Generate default training config file."
+    )
+    parser.add_argument(
+        "--type", required=True, choices=["lfq", "vq"], help="Config type: lfq or vq"
+    )
     args = parser.parse_args()
     cfg_type = args.type
     config = get_config(cfg_type)
