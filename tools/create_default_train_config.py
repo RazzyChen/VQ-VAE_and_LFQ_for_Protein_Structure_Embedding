@@ -33,8 +33,8 @@ def get_config(cfg_type):
                 "log_every_n_steps": 100,
                 "val_check_interval": 0.25,
                 "final_model_path": "./weight/final_model.ckpt",
-                "precision": "BF16-mixed",
-                "strategy": "ddp",
+                "precision": "bf16-mixed",
+                "strategy": "auto",
             },
         }
     elif cfg_type == "lfq":
@@ -66,8 +66,8 @@ def get_config(cfg_type):
                 "log_every_n_steps": 100,
                 "val_check_interval": 0.25,
                 "final_model_path": "./weight/final_model.ckpt",
-                "precision": "BF16-mixed",
-                "strategy": "ddp",
+                "precision": "bf16-mixed",
+                "strategy": "auto",
             },
         }
     else:
@@ -75,12 +75,8 @@ def get_config(cfg_type):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate default training config file."
-    )
-    parser.add_argument(
-        "--type", required=True, choices=["lfq", "vq"], help="Config type: lfq or vq"
-    )
+    parser = argparse.ArgumentParser(description="Generate default training config file.")
+    parser.add_argument("--type", required=True, choices=["lfq", "vq"], help="Config type: lfq or vq")
     args = parser.parse_args()
     cfg_type = args.type
     config = get_config(cfg_type)
