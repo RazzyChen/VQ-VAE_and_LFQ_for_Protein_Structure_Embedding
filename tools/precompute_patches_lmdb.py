@@ -4,6 +4,7 @@ Usage: python tools/precompute_patches_lmdb.py --config config/train.yml --lmdb_
 """
 
 import argparse
+import concurrent.futures
 import hashlib
 from pathlib import Path
 
@@ -69,6 +70,18 @@ def valid_pdb_residues(pdb_file, patch_size):
     return residues if len(residues) >= patch_size + 2 else None
 
 
+def process_pdb_file(args):
+    pdb_file, patch_size = args
+    residues = valid_pdb_residues(pdb_file, patch_size)
+    if residues is None:
+        return None
+    phi_psi = calc_phi_psi(residues)
+    angle_vecs = angle_to_vector(phi_psi)
+    patches = make_patches(angle_vecs, patch_size)
+    tensor_bytes = torch.save(patches, _return_bytes=True)
+    return (str(pdb_file), tensor_bytes)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Precompute patches for all PDB files and save them to LMDB, and save the MD5 of the LMDB."
@@ -86,18 +99,19 @@ def main():
     lmdb_folder.mkdir(parents=True, exist_ok=True)
     lmdb_path = lmdb_folder / "train.lmdb"
 
+    num_workers = data_cfg.get("num_workers", 1)
     pdb_files = list(Path(pdb_dir).glob("*.pdb"))
+    tasks = [(pdb_file, patch_size) for pdb_file in pdb_files]
+    results = []
+    with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
+        for result in tqdm(executor.map(process_pdb_file, tasks), total=len(tasks), desc="Processing PDBs"):
+            if result is not None:
+                results.append(result)
+
     env = lmdb.open(str(lmdb_path), map_size=1024**4)
     with env.begin(write=True) as txn:
-        for pdb_file in tqdm(pdb_files, desc="Writing to LMDB"):
-            residues = valid_pdb_residues(pdb_file, patch_size)
-            if residues is None:
-                continue
-            phi_psi = calc_phi_psi(residues)
-            angle_vecs = angle_to_vector(phi_psi)
-            patches = make_patches(angle_vecs, patch_size)
-            tensor_bytes = torch.save(patches, _return_bytes=True)
-            txn.put(str(pdb_file).encode(), tensor_bytes)
+        for pdb_file, tensor_bytes in tqdm(results, desc="Writing to LMDB"):
+            txn.put(pdb_file.encode(), tensor_bytes)
     env.close()
 
     # Compute MD5 for the actual LMDB data file (data.mdb)
