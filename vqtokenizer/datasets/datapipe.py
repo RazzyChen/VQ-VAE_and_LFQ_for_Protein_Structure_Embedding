@@ -5,14 +5,14 @@ This module implements LMDB validation, MD5 checksum verification, and patch ret
 """
 
 import hashlib
+import io
 import pickle
 from pathlib import Path
 
+import lmdb
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import Dataset
-
-import lmdb
 
 
 class ProteinStructureDataset(Dataset):
@@ -61,8 +61,25 @@ class ProteinStructureDataset(Dataset):
             tensor_bytes = txn.get(pdb_file.encode())
             if tensor_bytes is None:
                 raise KeyError(f"{pdb_file} not found in LMDB")
-            patches = torch.load(pickle.loads(pickle.dumps(tensor_bytes)), map_location="cpu")
+            # 用 io.BytesIO 包装 bytes 数据
+            patches = torch.load(io.BytesIO(tensor_bytes), map_location="cpu")
         return patches
+
+
+def pad_collate_fn(batch, patch_size):
+    # batch: List[Tensor], each shape [num_patches, patch_size*4]
+    max_num_patches = max(x.shape[0] for x in batch)
+    feature_dim = patch_size * 4
+    padded = []
+    for x in batch:
+        num_patches = x.shape[0]
+        if num_patches < max_num_patches:
+            pad_tensor = torch.zeros((max_num_patches - num_patches, feature_dim), dtype=x.dtype)
+            padded_x = torch.cat([x, pad_tensor], dim=0)
+        else:
+            padded_x = x[:max_num_patches]
+        padded.append(padded_x)
+    return torch.stack(padded, dim=0)
 
 
 class ProteinDataModule(pl.LightningDataModule):
@@ -93,10 +110,18 @@ class ProteinDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
-            self.dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers
+            self.dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+            collate_fn=lambda batch: pad_collate_fn(batch, self.patch_size),
         )
 
     def val_dataloader(self):
         return torch.utils.data.DataLoader(
-            self.dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers
+            self.dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            collate_fn=lambda batch: pad_collate_fn(batch, self.patch_size),
         )
