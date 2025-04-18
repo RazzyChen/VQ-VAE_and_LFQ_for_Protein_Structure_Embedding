@@ -8,6 +8,7 @@ import concurrent.futures
 import hashlib
 from pathlib import Path
 
+import numpy as np
 import torch
 from Bio.PDB import PDBParser
 from Bio.PDB.Residue import Residue
@@ -35,7 +36,9 @@ def calc_phi_psi(residues: list[Residue]) -> torch.Tensor:
             psis.append(psi)
         except Exception:
             continue
-    return torch.stack([torch.tensor(phis), torch.tensor(psis)], axis=1)  # shape: (N, 2)
+    phis = np.array(phis)
+    psis = np.array(psis)
+    return torch.stack([torch.from_numpy(phis), torch.from_numpy(psis)], axis=1)  # shape: (N, 2)
 
 
 def angle_to_vector(angles: torch.Tensor) -> torch.Tensor:
@@ -71,6 +74,8 @@ def valid_pdb_residues(pdb_file, patch_size):
 
 
 def process_pdb_file(args):
+    import io  # ensure import in subprocess
+
     pdb_file, patch_size = args
     residues = valid_pdb_residues(pdb_file, patch_size)
     if residues is None:
@@ -78,7 +83,9 @@ def process_pdb_file(args):
     phi_psi = calc_phi_psi(residues)
     angle_vecs = angle_to_vector(phi_psi)
     patches = make_patches(angle_vecs, patch_size)
-    tensor_bytes = torch.save(patches, _return_bytes=True)
+    buffer = io.BytesIO()
+    torch.save(patches, buffer)
+    tensor_bytes = buffer.getvalue()
     return (str(pdb_file), tensor_bytes)
 
 

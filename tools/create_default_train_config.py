@@ -29,7 +29,7 @@ def get_config(cfg_type):
     elif cfg_type == "lfq":
         return {
             "wandb": {"project": "VQTokenizer"},
-            "data": {"pdb_dir": "./data", "patch_size": 8, "batch_size": 64, "num_workers": 12},
+            "data": {"pdb_dir": "../data", "patch_size": 8, "lmdb_dir": "./LMDB", "batch_size": 64, "num_workers": 12},
             "model": {
                 "hidden_dim": 1024,
                 "latent_dim": 8,
