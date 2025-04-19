@@ -39,8 +39,8 @@ class LFQTokenizer(pl.LightningModule):
         self.learning_rate = learning_rate
 
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor]:
-        z_e = self.encoder(x.unsqueeze(1))
-        z_e = self.projection(z_e.squeeze(1))
+        z_e = self.encoder(x)
+        z_e = self.projection(z_e)
         z_q, vq_loss, indices = self.lfq_layer(z_e)
         reconstructed = self.decoder(z_q)
         return reconstructed, vq_loss, indices
@@ -78,7 +78,7 @@ class LFQTokenizer(pl.LightningModule):
         }
 
     def encode(self, x: Tensor) -> Tensor:
-        z_e = self.encoder(x.unsqueeze(1)).squeeze(1)
+        z_e = self.encoder(x)
         z_e = self.projection(z_e)
         _, _, indices = self.lfq_layer(z_e)
         return indices
