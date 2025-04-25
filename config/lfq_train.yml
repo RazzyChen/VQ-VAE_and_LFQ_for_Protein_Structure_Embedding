@@ -13,6 +13,11 @@ model:
   learning_rate: 0.0005
   temperature: 1.0
   commitment_cost: 0.25
+  lr_peak: 4e-4           # 峰值学习率
+  lr_min: 4e-5            # 最小学习率
+  lr_warmup_ratio: 0.02   # warmup步数占总步数的比例
+  lr_decay_ratio: 0.9     # 衰减所占训练步数比例
+  weight_decay: 0.01      # 权重衰减
 trainer:
   max_epochs: 50
   accelerator: auto

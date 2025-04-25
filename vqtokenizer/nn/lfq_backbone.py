@@ -27,6 +27,11 @@ class LFQTokenizer(pl.LightningModule):
         learning_rate: float = 1e-3,
         temperature: float = 1.0,
         commitment_cost: float = 0.25,
+        lr_peak: float = 4e-4,
+        lr_min: float = 4e-5,
+        lr_warmup_ratio: float = 0.02,
+        lr_decay_ratio: float = 0.9,
+        weight_decay: float = 0.01,
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -37,6 +42,11 @@ class LFQTokenizer(pl.LightningModule):
         self.lfq_layer = LFQLayer(embedding_dim=latent_dim, temperature=temperature, commitment_cost=commitment_cost)
         self.decoder = MLPDecoder(latent_dim, hidden_dim, input_dim)
         self.learning_rate = learning_rate
+        self.lr_peak = lr_peak
+        self.lr_min = lr_min
+        self.lr_warmup_ratio = lr_warmup_ratio
+        self.lr_decay_ratio = lr_decay_ratio
+        self.weight_decay = weight_decay
 
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor]:
         z_e = self.encoder(x)
@@ -68,13 +78,28 @@ class LFQTokenizer(pl.LightningModule):
         return total_loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode="min", factor=0.5, patience=5, min_lr=1e-6
-        )
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr_peak, weight_decay=self.weight_decay)
+
+        def lr_lambda(current_step):
+            total_steps = self.trainer.max_steps if self.trainer and self.trainer.max_steps is not None else 100000
+            warmup_steps = int(total_steps * self.lr_warmup_ratio)
+            decay_steps = int(total_steps * self.lr_decay_ratio)
+            if current_step < warmup_steps:
+                return float(current_step) / float(max(1, warmup_steps))
+            elif current_step < warmup_steps + decay_steps:
+                decay_progress = (current_step - warmup_steps) / float(max(1, decay_steps))
+                return 1.0 - decay_progress * (1.0 - self.lr_min / self.lr_peak)
+            else:
+                return self.lr_min / self.lr_peak
+
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
         return {
             "optimizer": optimizer,
-            "lr_scheduler": {"scheduler": scheduler, "monitor": "val_total_loss", "frequency": 1},
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "interval": "step",
+                "frequency": 1,
+            },
         }
 
     def encode(self, x: Tensor) -> Tensor:
