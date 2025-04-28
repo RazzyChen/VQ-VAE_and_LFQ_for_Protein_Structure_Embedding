@@ -1518,8 +1518,7 @@ version = "12.6.80"
 description = "CUDA profiling tools runtime libs."
 optional = false
 python-versions = ">=3"
-groups = ["main"]
-markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""
+groups = ["main", "dev"]
 files = [
     {file = "nvidia_cuda_cupti_cu12-12.6.80-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:166ee35a3ff1587f2490364f90eeeb8da06cd867bd5b701bf7f9a02b78bc63fc"},
     {file = "nvidia_cuda_cupti_cu12-12.6.80-py3-none-manylinux2014_aarch64.whl", hash = "sha256:358b4a1d35370353d52e12f0a7d1769fc01ff74a191689d3870b2123156184c4"},
